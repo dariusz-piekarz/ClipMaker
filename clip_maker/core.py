@@ -47,6 +47,8 @@ def visual_media_and_soundtrack_to_clip(media_paths: list[str],
 
     elif soundtrack_ext in AUDIO_EXTENSIONS:
         audio = AudioFileClip(soundtrack_path)
+    else:
+        raise OSError(f"Audio file {soundtrack_path} has wrong extension. Supported {VIDEO_EXTENSIONS + AUDIO_EXTENSIONS}")
 
     total_length_media: Numerical = _get_total_length_of_media_clip(media_timeing=media_timeing)
 
