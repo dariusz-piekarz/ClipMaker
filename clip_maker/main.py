@@ -11,7 +11,7 @@ def clipper_from_dict(dt: dict[str, ...]) -> None:
 
     fields: list[str] = ['media_files', 'clip_size', 'media_time_schedule', 'audio_file', 'result_file', 'audio_time']
 
-    if any([field not in dt.keys() for field in fields]):
+    if any(field not in dt.keys() for field in fields):
         raise KeyError(f"Fields {fields} are mandatory!")
 
     visual_media_and_soundtrack_to_clip(media_paths=dt['media_files'],

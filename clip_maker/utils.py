@@ -31,12 +31,12 @@ def _initial_input_verification(media_paths: list[str], media_timing: list[Numer
     if _get_extension(audio_path) not in AUDIO_EXTENSIONS + VIDEO_EXTENSIONS:
         raise ValueError(f"Audio file cannot have the {_get_extension(audio_path).lower()} extension!")
 
-    if any([not exists(md_path) for md_path in media_paths]):
+    if any(not exists(md_path) for md_path in media_paths):
         raise FileExistsError("At least one of provided media files does not exist!")
 
     visual_extensions: list[str] = VIDEO_EXTENSIONS + IMAGE_EXTENSIONS
 
-    if any([_get_extension(md_path) not in visual_extensions for md_path in media_paths]):
+    if any(_get_extension(md_path) not in visual_extensions for md_path in media_paths):
         raise ValueError(
             f"One of media files have non-supported extensions! Supported extensions are: {visual_extensions}!")
 
