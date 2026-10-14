@@ -1,7 +1,7 @@
 # Pomysły na rozwój ClipMaker
 
 ## Najpierw: niezawodność
-- [] **Dodać wsparcie systemu 60tkowego dla podawania czasu utworu jako  wygodniejsze dla użytkownika.
+- [ ] **Dodać wsparcie systemu 60tkowego dla podawania czasu utworu jako  wygodniejsze dla użytkownika.**
 - [x] **Usunąć obejście zależności MoviePy/Pillow.** Projekt korzysta z Python 3.14.8 i zależności zgodnych z deklaracją MoviePy. Python 3.15 pozostaje zainstalowany osobno; powrót do niego wymaga wydania MoviePy zgodnego z Pillow 12+.
 - [x] **Dodać CI na GitHub Actions.** Windows i Linux uruchamiają `uv sync --locked --all-groups` oraz testy renderowania. [Instrukcja uv dla GitHub Actions](https://docs.astral.sh/uv/guides/integration/github/).
 - [x] **Rozszerzyć walidację wejścia.** Sprawdzać wszystkie zakresy wideo i audio przed rozpoczęciem eksportu, czytelnie zgłaszać brak ścieżki audio w pliku wideo i zapobiegać zapisowi na pliku źródłowym.
