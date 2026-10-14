@@ -6,6 +6,7 @@ from clip_maker.main import clipper_from_dict
 
 
 def clip_maker() -> None:
+    """Read a configuration file and invoke the renderer from the CLI."""
     parser = argparse.ArgumentParser(description='Create a video clip from a JSON configuration.')
     parser.add_argument('config', nargs='?', type=Path, default=Path('config.json'))
     args = parser.parse_args()

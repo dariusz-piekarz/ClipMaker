@@ -2,6 +2,7 @@ from clip_maker.core import visual_media_and_soundtrack_to_clip
 
 
 def clipper_from_dict(config: dict) -> None:
+    """Map the JSON configuration fields to the renderer's arguments."""
     required = {'media_files', 'clip_size', 'media_time_schedule', 'audio_file', 'result_file'}
     missing = required - config.keys()
     if missing:

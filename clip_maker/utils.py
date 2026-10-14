@@ -5,10 +5,12 @@ from clip_maker import AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS
 
 
 def extension(path: str) -> str:
+    """Return a file extension in the format used by the supported-format lists."""
     return Path(path).suffix.removeprefix('.').upper()
 
 
 def duration(value: float | int | tuple[float | int, float | int]) -> float:
+    """Convert a positive duration or ordered [start, end] range to seconds."""
     if isinstance(value, (tuple, list)):
         if len(value) != 2 or not all(_valid_number(x) for x in value):
             raise ValueError('A time range must contain two finite numbers.')
@@ -25,7 +27,11 @@ def _valid_number(value: object) -> bool:
     return isinstance(value, (float, int)) and not isinstance(value, bool) and isfinite(value)
 
 
-def validate_inputs(media_paths, common_size, media_timing, soundtrack_path, soundtrack_timing) -> None:
+def validate_inputs(media_paths, common_size, media_timing, soundtrack_path, soundtrack_timing, output_file_name=None) -> None:
+    """Check paths, schedule shape, and timing syntax before opening any media.
+
+    Actual media lengths are checked after MoviePy opens the source files.
+    """
     if not media_paths:
         raise ValueError('At least one media file is required.')
     if len(common_size) != 2 or any(not isinstance(x, int) or isinstance(x, bool) or x <= 0 for x in common_size):
@@ -50,3 +56,13 @@ def validate_inputs(media_paths, common_size, media_timing, soundtrack_path, sou
         duration(timing)
     if soundtrack_timing is not None:
         duration(soundtrack_timing)
+    if output_file_name is not None:
+        output = Path(output_file_name)
+        if output.suffix.lower() != '.mp4':
+            raise ValueError('result_file must have an .mp4 extension.')
+        if not output.parent.is_dir():
+            raise FileNotFoundError(f'Output directory does not exist: {output.parent}')
+        for source in [*media_paths, soundtrack_path]:
+            source_path = Path(source)
+            if output.resolve() == source_path.resolve() or (output.exists() and output.samefile(source_path)):
+                raise ValueError(f'Output file would overwrite an input file: {source}')

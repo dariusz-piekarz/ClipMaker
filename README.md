@@ -33,6 +33,8 @@ Example configuration:
 
 Each video file needs a `[start, end]` range in seconds. Each image except the last needs a duration in seconds. A final image fills the remaining soundtrack time. If the final file is a video, include its range; it will be trimmed if it extends beyond the soundtrack. Omit `audio_time` to use the entire soundtrack.
 
+Before writing the output, ClipMaker checks that every requested video and audio range fits its source file. It also rejects videos without an audio track when used as the soundtrack, missing output directories, and output paths that would overwrite an input file.
+
 ## Test
 
 ```powershell

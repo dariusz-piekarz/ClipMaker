@@ -14,8 +14,15 @@ def visual_media_and_soundtrack_to_clip(
     output_file_name: str,
     soundtrack_timing: tuple[float | int, float | int] | None = None,
 ) -> None:
-    """Create a clip. A final image fills remaining audio; a final video may be trimmed."""
-    validate_inputs(media_paths, common_size, media_timeing, soundtrack_path, soundtrack_timing)
+    """Render scheduled media with a soundtrack to MP4.
+
+    Every video has a source range. A final image fills the remaining audio;
+    a final video is shortened when its range extends beyond the audio.
+    Input files and all requested source ranges are checked before writing.
+    """
+    validate_inputs(media_paths, common_size, media_timeing, soundtrack_path, soundtrack_timing, output_file_name)
+    # ExitStack owns every opened source clip and closes it on success or error.
+    # VideoFileClip and AudioFileClip also hold FFmpeg processes and file handles.
     with ExitStack() as stack:
         if extension(soundtrack_path) in VIDEO_EXTENSIONS:
             soundtrack_video = stack.enter_context(VideoFileClip(soundtrack_path))
@@ -27,6 +34,17 @@ def visual_media_and_soundtrack_to_clip(
         audio_start, audio_end = soundtrack_timing or (0, audio.duration)
         if audio_end > audio.duration + 1e-6:
             raise ValueError('audio_time ends after the soundtrack.')
+        sources = []
+        for path, timing in zip(media_paths, media_timeing):
+            if extension(path) in IMAGE_EXTENSIONS:
+                sources.append(stack.enter_context(ImageClip(path)))
+            else:
+                source = stack.enter_context(VideoFileClip(path))
+                if timing[1] > source.duration + 1e-6:
+                    raise ValueError(f'Video range ends after the file: {path}')
+                sources.append(source)
+        if len(media_paths) > len(media_timeing):
+            sources.append(stack.enter_context(ImageClip(media_paths[-1])))
         planned = sum(duration(item) for item in media_timeing)
         available = float(audio_end - audio_start)
         final_is_image = extension(media_paths[-1]) in IMAGE_EXTENSIONS
@@ -44,15 +62,11 @@ def visual_media_and_soundtrack_to_clip(
             timings = [*media_timeing[:-1], (last_start, last_end)]
             output_duration = preceding + (last_end - last_start)
         clips = []
-        for path, timing in zip(media_paths, timings):
+        for path, source, timing in zip(media_paths, sources, timings):
             if extension(path) in IMAGE_EXTENSIONS:
-                clip = stack.enter_context(ImageClip(path))
-                clip = clip.resized(new_size=common_size).with_duration(duration(timing))
+                clip = source.resized(new_size=common_size).with_duration(duration(timing))
             else:
-                source = stack.enter_context(VideoFileClip(path))
                 start, end = timing
-                if end > source.duration + 1e-6:
-                    raise ValueError(f'Video range ends after the file: {path}')
                 clip = source.subclipped(start, end).resized(new_size=common_size)
             clips.append(clip)
         sound = audio.subclipped(audio_start, audio_start + output_duration)
