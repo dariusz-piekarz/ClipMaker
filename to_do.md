@@ -2,8 +2,8 @@
 
 ## Najpierw: niezawodność
 
-- [ ] **Usunąć obejście zależności MoviePy/Pillow.** Obecny MoviePy 2.2.1 deklaruje Pillow `<12`, a Python 3.15 wymaga nowszego gotowego pakietu na Windows. Śledzić wydanie MoviePy zgodne z Pillow 12+, wtedy usunąć `override-dependencies` z `pyproject.toml` i ponownie uruchomić testy renderowania.
-- [ ] **Dodać CI na GitHub Actions.** Na Windows i Linux uruchamiać `uv sync --locked` oraz `uv run python -m unittest discover -s tests -v`. Zapobiegnie to publikacji zmian psujących renderowanie. [Instrukcja uv dla GitHub Actions](https://docs.astral.sh/uv/guides/integration/github/).
+- [x] **Usunąć obejście zależności MoviePy/Pillow.** Projekt korzysta z Python 3.14.8 i zależności zgodnych z deklaracją MoviePy. Python 3.15 pozostaje zainstalowany osobno; powrót do niego wymaga wydania MoviePy zgodnego z Pillow 12+.
+- [x] **Dodać CI na GitHub Actions.** Windows i Linux uruchamiają `uv sync --locked --all-groups` oraz testy renderowania. [Instrukcja uv dla GitHub Actions](https://docs.astral.sh/uv/guides/integration/github/).
 - [ ] **Rozszerzyć walidację wejścia.** Sprawdzać wszystkie zakresy wideo i audio przed rozpoczęciem eksportu, czytelnie zgłaszać brak ścieżki audio w pliku wideo i zapobiegać zapisowi na pliku źródłowym.
 - [ ] **Dodać testy dla większej liczby wejść.** Kilka filmów, plik wideo jako źródło dźwięku, niepoprawne zakresy i media bez ścieżki audio.
 

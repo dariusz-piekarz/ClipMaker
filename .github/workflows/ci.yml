@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v9
+      - name: Install Python and project
+        run: |
+          uv python install
+          uv sync --locked --all-groups
+      - name: Run tests
+        run: uv run --locked --all-groups python -m unittest discover -s tests -v

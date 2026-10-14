@@ -1,17 +1,24 @@
 # ClipMaker
 
-ClipMaker składa plik MP4 z obrazów, fragmentów wideo i ścieżki dźwiękowej.
+ClipMaker builds an MP4 video from images, video segments, and a soundtrack.
 
-## Uruchomienie
+## Requirements
+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- Python 3.14.8, installed automatically by uv from `.python-version`
+
+The project uses Python 3.14 because MoviePy 2.2.1 requires Pillow `<12`, while the available Pillow wheels for Python 3.15 require Pillow 12 or newer. Python 3.15 remains installed separately and available for other projects.
+
+## Run
 
 ```powershell
-uv sync
-uv run python -m clip_maker config.json
+uv sync --locked
+uv run --locked python -m clip_maker config.json
 ```
 
-Program domyślnie czyta `config.json` z bieżącego katalogu. Można podać inną ścieżkę jako argument. W pliku znajdują się obecnie ścieżki z innego komputera (`C:\Users\Daric\...`); przed uruchomieniem na tym komputerze trzeba je zastąpić istniejącymi plikami.
+The command reads `config.json` from the current directory by default. Pass a different JSON file as the argument if needed. The tracked `config.json` still contains paths from another computer (`C:\Users\Daric\...`); replace them with existing media paths before rendering.
 
-Przykładowa struktura konfiguracji:
+Example configuration:
 
 ```json
 {
@@ -24,11 +31,17 @@ Przykładowa struktura konfiguracji:
 }
 ```
 
-Każdy film w `media_files` wymaga zakresu `[start, end]` w sekundach. Każdy obraz poza ostatnim wymaga liczby sekund. Ostatni obraz wypełnia resztę wybranego dźwięku. Jeśli ostatnim plikiem jest film, podaj także jego zakres; zostanie przycięty do końca dźwięku, o ile jest za długi. `audio_time` jest opcjonalne i pominięcie tej wartości oznacza użycie całego dźwięku.
+Each video file needs a `[start, end]` range in seconds. Each image except the last needs a duration in seconds. A final image fills the remaining soundtrack time. If the final file is a video, include its range; it will be trimmed if it extends beyond the soundtrack. Omit `audio_time` to use the entire soundtrack.
 
-## Kierunki rozwoju
+## Test
 
-- Obsługa proporcji obrazu: obecnie obraz jest rozciągany do `clip_size`; warto dodać tryby przycięcia i pasów.
-- Parametry eksportu w konfiguracji: FPS, kodek, jakość oraz liczba wątków są na stałe w kodzie.
-- Przejścia i napisy, najlepiej jako osobne opcjonalne kroki osi czasu.
-- Pasek postępu i czytelniejszy raport błędów dla uruchomienia z terminala.
+```powershell
+uv sync --locked --all-groups
+uv run --locked --all-groups python -m unittest discover -s tests -v
+```
+
+GitHub Actions runs the same tests on Windows and Linux. The tests generate short media files and verify the rendered video, so no personal media files are needed.
+
+## Roadmap
+
+See [to_do.md](to_do.md) for planned reliability and editing improvements.
