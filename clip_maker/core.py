@@ -1,90 +1,63 @@
-from typing import Optional, Union
-from moviepy import ImageClip, AudioFileClip, VideoFileClip, concatenate_videoclips
+from contextlib import ExitStack
 
-from clip_maker.utils import (_get_extension,
-                              _read_media_set_duration,
-                              _get_total_length_of_media_clip,
-                              _cut_length_of_audio_or_last_video,
-                              _initial_input_verification)
-from clip_maker import AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, TimeTuple, Numerical
+from moviepy import AudioFileClip, ImageClip, VideoFileClip, concatenate_videoclips
+
+from clip_maker import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS
+from clip_maker.utils import duration, extension, validate_inputs
 
 
-def visual_media_and_soundtrack_to_clip(media_paths: list[str],
-                                        common_size: tuple[int, int],
-                                        media_timeing: list[Union[Numerical, TimeTuple]],
-                                        soundtrack_path: str,
-                                        output_file_name: str,
-                                        soundtrack_timing: Optional[TimeTuple] = None) -> None:
-    """
-    Function for creating .mp4 video clips from provided images and soundtrack.
-
-    The function displays images in the provided order for time specified in 'images_timeing'.
-    Size of images is standardised by parameter 'common_size'. To images displayed in time there is attached soundtrack,
-    therefore timing for images must cover one less length [in seconds] than number of images
-     (the last image is displayed for the remaining time to the clip end).
-     Soundtrack itself can be a part of a full soundtrack file, if such restriction is requested,
-     then it should be specified in the parameter 'soundtrack_timing'.
-
-    :param media_paths: list[str], list of paths to image files in order these appear in the final video clip
-    :param common_size: tuple[int, int], common width and height of images read from images_paths
-    :param media_timeing: list[Union[Numerical, TimeTuple]], list of display-time of images provided in images_paths
-    :param soundtrack_path: str, path to a video clip or audio clip that should be in a target video file
-    :param output_file_name: str, a path (containing a name of a file) to the output clip
-    :param soundtrack_timing: Optional[tuple[Numerical, Numerical]], if None then full provided soundtrack is utilized,
-     otherwise first coordinate is the start time (in seconds) and the second coordinate is the end time (in second) of
-     the audio clip.
-
-    :return: None
-    """
-
-    _initial_input_verification(media_paths, media_timeing, soundtrack_path)
-
-    audio: AudioFileClip
-    soundtrack_ext: str = _get_extension(soundtrack_path)
-
-    if soundtrack_ext in VIDEO_EXTENSIONS:
-        audio = VideoFileClip(soundtrack_path).audio
-
-    elif soundtrack_ext in AUDIO_EXTENSIONS:
-        audio = AudioFileClip(soundtrack_path)
-    else:
-        raise OSError(f"Audio file {soundtrack_path} has wrong extension. Supported {VIDEO_EXTENSIONS + AUDIO_EXTENSIONS}")
-
-    total_length_media: Numerical = _get_total_length_of_media_clip(media_timeing=media_timeing)
-
-    aud_time: TimeTuple
-    last_media_timing: Union[Numerical, TimeTuple]
-
-    aud_time, last_media_timing = _cut_length_of_audio_or_last_video(
-        audio_length=soundtrack_timing if soundtrack_timing is not None else (0, audio.duration),
-        total_length_mds=total_length_media,
-        last_md_ext=_get_extension(media_paths[-1]),
-        last_md_time=media_timeing[-1] if isinstance(media_timeing[-1], tuple) else None)
-
-    audio = audio.subclipped(*aud_time)
-
-    media_time: list[Union[Numerical, TimeTuple]] = media_timeing
-
-    if isinstance(media_timeing, tuple):
-        media_time.pop(-1)
-
-    media_time.append(last_media_timing)
-
-    mds: list[Union[ImageClip, VideoFileClip]] = _read_media_set_duration(media_paths=media_paths,
-                                                                          common_size=common_size,
-                                                                          media_timing=media_time)
-
-    video_clip: VideoFileClip = concatenate_videoclips(mds).with_audio(audio)
-    video_clip.duration = audio.duration
-
-    video_clip.write_videofile(output_file_name,
-                               codec="libx264",
-                               audio_codec="aac",
-                               fps=24,
-                               threads=4,
-                               preset="fast")
-
-    for md_clip in mds:
-        md_clip.close()
-
-    video_clip.close()
+def visual_media_and_soundtrack_to_clip(
+    media_paths: list[str],
+    common_size: tuple[int, int],
+    media_timeing: list[float | int | tuple[float | int, float | int]],
+    soundtrack_path: str,
+    output_file_name: str,
+    soundtrack_timing: tuple[float | int, float | int] | None = None,
+) -> None:
+    """Create a clip. A final image fills remaining audio; a final video may be trimmed."""
+    validate_inputs(media_paths, common_size, media_timeing, soundtrack_path, soundtrack_timing)
+    with ExitStack() as stack:
+        if extension(soundtrack_path) in VIDEO_EXTENSIONS:
+            soundtrack_video = stack.enter_context(VideoFileClip(soundtrack_path))
+            if soundtrack_video.audio is None:
+                raise ValueError('The soundtrack video has no audio track.')
+            audio = soundtrack_video.audio
+        else:
+            audio = stack.enter_context(AudioFileClip(soundtrack_path))
+        audio_start, audio_end = soundtrack_timing or (0, audio.duration)
+        if audio_end > audio.duration + 1e-6:
+            raise ValueError('audio_time ends after the soundtrack.')
+        planned = sum(duration(item) for item in media_timeing)
+        available = float(audio_end - audio_start)
+        final_is_image = extension(media_paths[-1]) in IMAGE_EXTENSIONS
+        if final_is_image:
+            if planned >= available:
+                raise ValueError('The soundtrack must be longer than the scheduled media so the last image is visible.')
+            timings = [*media_timeing, available - planned]
+            output_duration = available
+        else:
+            preceding = sum(duration(item) for item in media_timeing[:-1])
+            if preceding >= available:
+                raise ValueError('The soundtrack must extend past the preceding media.')
+            last_start, last_end = media_timeing[-1]
+            last_end = min(last_end, last_start + available - preceding)
+            timings = [*media_timeing[:-1], (last_start, last_end)]
+            output_duration = preceding + (last_end - last_start)
+        clips = []
+        for path, timing in zip(media_paths, timings):
+            if extension(path) in IMAGE_EXTENSIONS:
+                clip = stack.enter_context(ImageClip(path))
+                clip = clip.resized(new_size=common_size).with_duration(duration(timing))
+            else:
+                source = stack.enter_context(VideoFileClip(path))
+                start, end = timing
+                if end > source.duration + 1e-6:
+                    raise ValueError(f'Video range ends after the file: {path}')
+                clip = source.subclipped(start, end).resized(new_size=common_size)
+            clips.append(clip)
+        sound = audio.subclipped(audio_start, audio_start + output_duration)
+        result = concatenate_videoclips(clips).with_audio(sound)
+        try:
+            result.write_videofile(output_file_name, codec='libx264', audio_codec='aac', fps=24, threads=4, preset='fast')
+        finally:
+            result.close()

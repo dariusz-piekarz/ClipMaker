@@ -1,7 +1,7 @@
 from typing import Union
 
 
-AUDIO_EXTENSIONS: list[str] = ['MP3','WMA', "FLAC", "AAC", "OGG"]
+AUDIO_EXTENSIONS: list[str] = ['MP3', 'WMA', 'FLAC', 'AAC', 'OGG', 'WAV']
 VIDEO_EXTENSIONS: list[str] = ["MP4", "MOV", "AVI", "WMV", "FLV"]
 IMAGE_EXTENSIONS: list[str] = ["JPG", "JPEG", "PNG", 'GIF', 'WEBP']
 

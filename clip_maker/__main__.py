@@ -1,22 +1,18 @@
-from json5 import loads
+import argparse
+import json
 from pathlib import Path
-from os.path import join
 
 from clip_maker.main import clipper_from_dict
 
 
 def clip_maker() -> None:
-    """
-    Run ClipMaker from json file.
-
-    :return: None
-    """
-
-    dt: dict[str, ...] = loads(join(Path(__name__), "config.json"))
-    dt.update({'clip_size': tuple(dt['clip_size']), 'audio_time': tuple(dt['audio_time'])})
-
-    clipper_from_dict(dt)
+    parser = argparse.ArgumentParser(description='Create a video clip from a JSON configuration.')
+    parser.add_argument('config', nargs='?', type=Path, default=Path('config.json'))
+    args = parser.parse_args()
+    with args.config.open(encoding='utf-8') as stream:
+        config = json.load(stream)
+    clipper_from_dict(config)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     clip_maker()

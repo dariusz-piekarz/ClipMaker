@@ -6,7 +6,7 @@
     "C:\\Users\\Daric\\Desktop\\image4.jpg"
   ],
  "clip_size": [554, 860],
- "media_time_schedule": [2, 2],
+ "media_time_schedule": [[0, 2], 2],
  "audio_file": "C:\\Users\\Daric\\Desktop\\Jenkins, Ratledge - Cantus Iteratus.mp3",
  "result_file": "C:\\Users\\Daric\\Desktop\\wwww.mp4",
  "audio_time": [20, 27]
